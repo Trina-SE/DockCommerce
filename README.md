@@ -1,2 +1,126 @@
 # DockCommerce
 Fully Containerized Microservices E-Commerce Backend
+
+# Project Description
+A simple e-commerce backend and turn it into a fully containerized microservices setup using Docker and solid DevOps practices.
+
+The backend setup consisting of:
+
+- A service for managing products
+- A gateway that forwards API requests
+
+The system is containerized, secure, optimized and maintain data persistence across container restarts.
+
+- Separate Dev and Prod configs
+- Data Persistence
+- Follow security basics (limit network exposure, sanitize input) 
+- Docker Image Optimization
+- Makefile CLI Commands for smooth dev and prod deploy experience
+
+## Architecture
+
+```
+                    ┌─────────────────┐
+                    │   Client/User   │
+                    └────────┬────────┘
+                             │
+                             │ HTTP (port 5921)
+                             │
+                    ┌────────▼────────┐
+                    │    Gateway      │
+                    │  (port 5921)    │
+                    │   [Exposed]     │
+                    └────────┬────────┘
+                             │
+                    ┌────────┴────────┐
+                    │                 │
+         ┌──────────▼──────────┐      │
+         │   Private Network   │      │
+         │  (Docker Network)   │      │
+         └──────────┬──────────┘      │
+                    │                 │
+         ┌──────────┴──────────┐      │
+         │                     │      │
+    ┌────▼────┐         ┌──────▼──────┐
+    │ Backend │         │   MongoDB   │
+    │(port    │◄────────┤  (port      │
+    │ 3847)   │         │  27017)     │
+    │[Not     │         │ [Not        │
+    │Exposed] │         │ Exposed]    │
+    └─────────┘         └─────────────┘
+```
+
+**Key Points:**
+- Gateway is the only service exposed to external clients (port 5921)
+- All external requests must go through the Gateway
+- Backend and MongoDB should not be exposed to public network
+
+## Project Structure
+
+```
+.
+├── backend/
+│   ├── Dockerfile
+│   ├── Dockerfile.dev
+│   └── src/
+├── gateway/
+│   ├── Dockerfile
+│   ├── Dockerfile.dev
+│   └── src/
+├── docker/
+│   ├── compose.development.yaml
+│   └── compose.production.yaml
+├── Makefile
+└── README.md
+```
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+MONGO_INITDB_ROOT_USERNAME=
+MONGO_INITDB_ROOT_PASSWORD=
+MONGO_URI=
+MONGO_DATABASE=
+BACKEND_PORT=3847 # DO NOT CHANGE
+GATEWAY_PORT=5921 # DO NOT CHANGE 
+NODE_ENV=
+```
+
+## Testing
+
+Use the following curl commands to test implementation.
+
+### Health Checks
+
+Check gateway health:
+```bash
+curl http://localhost:5921/health
+```
+
+Check backend health via gateway:
+```bash
+curl http://localhost:5921/api/health
+```
+
+### Product Management
+
+Create a product:
+```bash
+curl -X POST http://localhost:5921/api/products \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Test Product","price":99.99}'
+```
+
+Get all products:
+```bash
+curl http://localhost:5921/api/products
+```
+
+### Security Test
+
+Verify backend is not directly accessible (should fail or be blocked):
+```bash
+curl http://localhost:3847/api/products
+```
